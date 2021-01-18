@@ -8,7 +8,7 @@
     <Authors>Benedikt Radtke</Authors>
     <PackageProjectUrl>https://github.com/signal-csharp/libsignal-metadata-dotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/signal-csharp/libsignal-metadata-dotnet</RepositoryUrl>
-    <PackageLicenseExpression>GPL-3.0</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
