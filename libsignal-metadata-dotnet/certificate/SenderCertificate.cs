@@ -15,7 +15,7 @@ namespace libsignalmetadatadotnet.certificate
         {
             get
             {
-                return SenderUuid ?? SenderE164 ?? null;
+                return SenderE164 ?? SenderUuid ?? null;
             }
         }
         public long Expiration { get; }
