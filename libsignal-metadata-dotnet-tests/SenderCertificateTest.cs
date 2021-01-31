@@ -22,7 +22,8 @@ namespace libsignalmetadatadotnettests
 
             byte[] certificateBytes = new libsignalmetadata.protobuf.SenderCertificate.Types.Certificate()
             {
-                Sender = "+14152222222",
+                SenderUuid = "9d0652a3-dcc3-4d11-975f-74d61598733f",
+                SenderE164 = "+14152222222",
                 SenderDevice = 1,
                 Expires = 31337,
                 IdentityKey = ByteString.CopyFrom(key.getPublicKey().serialize()),
@@ -48,7 +49,8 @@ namespace libsignalmetadatadotnettests
 
             byte[] certificateBytes = new libsignalmetadata.protobuf.SenderCertificate.Types.Certificate()
             {
-                Sender = "+14152222222",
+                SenderUuid = "9d0652a3-dcc3-4d11-975f-74d61598733f",
+                SenderE164 = "+14152222222",
                 SenderDevice = 1,
                 Expires = 31337,
                 IdentityKey = ByteString.CopyFrom(key.getPublicKey().serialize()),
@@ -82,7 +84,8 @@ namespace libsignalmetadatadotnettests
 
             byte[] certificateBytes = new libsignalmetadata.protobuf.SenderCertificate.Types.Certificate()
             {
-                Sender = "+14152222222",
+                SenderUuid = "9d0652a3-dcc3-4d11-975f-74d61598733f",
+                SenderE164 = "+14152222222",
                 SenderDevice = 1,
                 Expires = 31337,
                 IdentityKey = ByteString.CopyFrom(key.getPublicKey().serialize()),

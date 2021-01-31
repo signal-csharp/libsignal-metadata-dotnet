@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Google.Protobuf;
 using libsignal;
@@ -26,20 +24,21 @@ namespace libsignalmetadatadotnettests
             InitializeSessions(aliceStore, bobStore);
 
             ECKeyPair trustRoot = Curve.generateKeyPair();
-            SenderCertificate senderCertificate = CreateCertificateFor(trustRoot, "+14151111111", 1, aliceStore.GetIdentityKeyPair().getPublicKey().getPublicKey(), 31337);
-            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new SignalProtocolAddress("+14151111111", 1));
+            SenderCertificate senderCertificate = CreateCertificateFor(trustRoot, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1, aliceStore.GetIdentityKeyPair().getPublicKey().getPublicKey(), 31337);
+            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1);
 
             byte[] ciphertext = aliceCipher.Encrypt(new SignalProtocolAddress("+14152222222", 1),
                                                     senderCertificate, Encoding.ASCII.GetBytes("smert za smert"));
 
 
-            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new SignalProtocolAddress("+14152222222", 1));
+            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new Guid("e80f7bbe-5b94-471e-bd8c-2173654ea3d1"), "+14152222222", 1);
 
-            (SignalProtocolAddress, byte[]) plaintext = bobCipher.Decrypt(new CertificateValidator(trustRoot.getPublicKey()), ciphertext, 31335);
+            DecryptionResult plaintext = bobCipher.Decrypt(new CertificateValidator(trustRoot.getPublicKey()), ciphertext, 31335);
 
-            CollectionAssert.AreEqual(plaintext.Item2, Encoding.ASCII.GetBytes("smert za smert"));
-            Assert.AreEqual(plaintext.Item1.Name, "+14151111111");
-            Assert.AreEqual(plaintext.Item1.DeviceId, (uint)1);
+            Assert.AreEqual("smert za smert", Encoding.UTF8.GetString(plaintext.PaddedMessage));
+            Assert.AreEqual("9d0652a3-dcc3-4d11-975f-74d61598733f", plaintext.SenderUuid);
+            Assert.AreEqual("+14151111111", plaintext.SenderE164);
+            Assert.AreEqual(1, plaintext.DeviceId);
         }
 
         [TestMethod]
@@ -52,18 +51,46 @@ namespace libsignalmetadatadotnettests
 
             ECKeyPair trustRoot = Curve.generateKeyPair();
             ECKeyPair falseTrustRoot = Curve.generateKeyPair();
-            SenderCertificate senderCertificate = CreateCertificateFor(falseTrustRoot, "+14151111111", 1, aliceStore.GetIdentityKeyPair().getPublicKey().getPublicKey(), 31337);
-            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new SignalProtocolAddress("+14151111111", 1));
+            SenderCertificate senderCertificate = CreateCertificateFor(falseTrustRoot, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1, aliceStore.GetIdentityKeyPair().getPublicKey().getPublicKey(), 31337);
+            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1);
 
             byte[] ciphertext = aliceCipher.Encrypt(new SignalProtocolAddress("+14152222222", 1),
                                                     senderCertificate, Encoding.ASCII.GetBytes("и вот я"));
 
-            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new SignalProtocolAddress("+14152222222", 1));
+            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new Guid("e80f7bbe-5b94-471e-bd8c-2173654ea3d1"), "+14152222222", 1);
 
             try
             {
                 bobCipher.Decrypt(new CertificateValidator(trustRoot.getPublicKey()), ciphertext, 31335);
-                throw new Exception();
+                Assert.Fail();
+            }
+            catch (InvalidMetadataMessageException)
+            {
+                // good
+            }
+        }
+
+        [TestMethod]
+        public void TestEncryptDecryptExpired()
+        {
+            TestInMemorySignalProtocolStore aliceStore = new TestInMemorySignalProtocolStore();
+            TestInMemorySignalProtocolStore bobStore = new TestInMemorySignalProtocolStore();
+
+            InitializeSessions(aliceStore, bobStore);
+
+            ECKeyPair trustRoot = Curve.generateKeyPair();
+            SenderCertificate senderCertificate = CreateCertificateFor(trustRoot, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1, aliceStore.GetIdentityKeyPair().getPublicKey().getPublicKey(), 31337);
+            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1);
+
+            byte[] ciphertext = aliceCipher.Encrypt(new SignalProtocolAddress("+14152222222", 1),
+                senderCertificate, Encoding.UTF8.GetBytes("и вот я"));
+
+            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new Guid("e80f7bbe-5b94-471e-bd8c-2173654ea3d1"), "+14152222222", 1);
+
+            try
+            {
+                bobCipher.Decrypt(new CertificateValidator(trustRoot.getPublicKey()), ciphertext, 31338);
+                Assert.Fail();
             }
             catch (InvalidMetadataMessageException)
             {
@@ -81,14 +108,14 @@ namespace libsignalmetadatadotnettests
 
             ECKeyPair trustRoot = Curve.generateKeyPair();
             ECKeyPair randomKeyPair = Curve.generateKeyPair();
-            SenderCertificate senderCertificate = CreateCertificateFor(trustRoot, "+14151111111", 1, randomKeyPair.getPublicKey(), 31337);
-            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new SignalProtocolAddress("+14151111111", 1));
+            SenderCertificate senderCertificate = CreateCertificateFor(trustRoot, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1, randomKeyPair.getPublicKey(), 31337);
+            SealedSessionCipher aliceCipher = new SealedSessionCipher(aliceStore, new Guid("9d0652a3-dcc3-4d11-975f-74d61598733f"), "+14151111111", 1);
 
             byte[] ciphertext = aliceCipher.Encrypt(new SignalProtocolAddress("+14152222222", 1),
                                                     senderCertificate, Encoding.ASCII.GetBytes("smert za smert"));
 
 
-            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new SignalProtocolAddress("+14152222222", 1));
+            SealedSessionCipher bobCipher = new SealedSessionCipher(bobStore, new Guid("e80f7bbe-5b94-471e-bd8c-2173654ea3d1"), "+14152222222", 1);
 
             try
             {
@@ -100,7 +127,7 @@ namespace libsignalmetadatadotnettests
             }
         }
 
-        private SenderCertificate CreateCertificateFor(ECKeyPair trustRoot, String sender, int deviceId, ECPublicKey identityKey, long expires)
+        private SenderCertificate CreateCertificateFor(ECKeyPair trustRoot, Guid uuid, string e164, int deviceId, ECPublicKey identityKey, long expires)
         {
             ECKeyPair serverKey = Curve.generateKeyPair();
 
@@ -120,7 +147,8 @@ namespace libsignalmetadatadotnettests
 
             byte[] senderCertificateBytes = new libsignalmetadata.protobuf.SenderCertificate.Types.Certificate
             {
-                Sender = sender,
+                SenderUuid = uuid.ToString(),
+                SenderE164 = e164,
                 SenderDevice = (uint)deviceId,
                 IdentityKey = ByteString.CopyFrom(identityKey.serialize()),
                 Expires = (ulong)expires,

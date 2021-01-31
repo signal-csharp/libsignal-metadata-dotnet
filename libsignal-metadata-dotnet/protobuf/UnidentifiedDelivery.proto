@@ -1,46 +1,45 @@
-syntax = "proto3";
+syntax = "proto2";
 package signal;
 option csharp_namespace = "libsignalmetadata.protobuf";
-option java_package = "org.signal.libsignal.metadata";
-option java_outer_classname = "SignalProtos";
 
 message ServerCertificate {
     message Certificate {
-        oneof id_oneof      { uint32 id  = 1; }
-        oneof key_oneof     { bytes  key = 2; }
+        optional uint32 id  = 1;
+        optional bytes  key = 2;
     }
 
-    oneof certificate_oneof { bytes certificate = 1; }
-    oneof signature_oneof  { bytes signature   = 2; }
+    optional bytes certificate = 1;
+    optional bytes signature   = 2;
 }
 
 message SenderCertificate {
     message Certificate {
-        oneof sender_oneof { string            sender        = 1; }
-        oneof senderDevice_oneof { uint32            senderDevice  = 2; }
-        oneof expires_oneof { fixed64           expires       = 3; }
-        oneof identityKey_oneof { bytes             identityKey   = 4; }
-        oneof signer_oneof { ServerCertificate signer        = 5; }
+        optional string            senderE164    = 1;
+        optional string            senderUuid    = 6;
+        optional uint32            senderDevice  = 2;
+        optional fixed64           expires       = 3;
+        optional bytes             identityKey   = 4;
+        optional ServerCertificate signer        = 5;
     }
 
-    oneof certificate_oneof { bytes certificate = 1; }
-    oneof signature_oneof { bytes signature   = 2; }
+    optional bytes certificate = 1;
+    optional bytes signature   = 2;
 }
 
 message UnidentifiedSenderMessage {
+
     message Message {
         enum Type {
-            ZERO_PLACEHOLDER = 0;
             PREKEY_MESSAGE = 1;
             MESSAGE        = 2;
         }
 
-        oneof type_oneof { Type              type              = 1; }
-        oneof senderCertificate_oneof { SenderCertificate senderCertificate = 2; }
-        oneof content_oneof { bytes             content           = 3; }
+        optional Type              type              = 1;
+        optional SenderCertificate senderCertificate = 2;
+        optional bytes             content           = 3;
     }
 
-    oneof ephemeralPublic_oneof { bytes ephemeralPublic  = 1; }
-    oneof encryptedStatic_oneof { bytes encryptedStatic  = 2; }
-    oneof encryptedMessage_oneof {  bytes encryptedMessage = 3; }
+    optional bytes ephemeralPublic  = 1;
+    optional bytes encryptedStatic  = 2;
+    optional bytes encryptedMessage = 3;
 }

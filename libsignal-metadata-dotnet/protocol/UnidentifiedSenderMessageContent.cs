@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Google.Protobuf;
 using libsignal.protocol;
 using libsignalmetadata;
@@ -21,9 +19,7 @@ namespace libsignalmetadatadotnet.protocol
             {
                 var message = libsignalmetadata.protobuf.UnidentifiedSenderMessage.Types.Message.Parser.ParseFrom(serialized);
 
-                if (message.TypeOneofCase != libsignalmetadata.protobuf.UnidentifiedSenderMessage.Types.Message.TypeOneofOneofCase.Type ||
-                    message.SenderCertificateOneofCase != libsignalmetadata.protobuf.UnidentifiedSenderMessage.Types.Message.SenderCertificateOneofOneofCase.SenderCertificate ||
-                    message.ContentOneofCase != libsignalmetadata.protobuf.UnidentifiedSenderMessage.Types.Message.ContentOneofOneofCase.Content)
+                if (!message.HasType || message.SenderCertificate == null || !message.HasContent)
                 {
                     throw new InvalidMetadataMessageException("Missing fields");
                 }

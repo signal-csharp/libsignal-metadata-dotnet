@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Google.Protobuf;
 using libsignal;
 using libsignal.ecc;
@@ -25,6 +22,7 @@ namespace libsignalmetadatadotnet.protocol
             try
             {
                 Version = ByteUtil.highBitsToInt(serialized[0]);
+
                 if (Version > CIPHERTEXT_VERSION)
                 {
                     throw new InvalidMetadataVersionException("Unknown version: " + Version);
@@ -32,9 +30,9 @@ namespace libsignalmetadatadotnet.protocol
 
                 var unidentifiedSenderMessage = Parser.ParseFrom(ByteString.CopyFrom(serialized, 1, serialized.Length - 1));
 
-                if (unidentifiedSenderMessage.EphemeralPublicOneofCase != EphemeralPublicOneofOneofCase.EphemeralPublic ||
-                    unidentifiedSenderMessage.EncryptedStaticOneofCase != EncryptedStaticOneofOneofCase.EncryptedStatic ||
-                    unidentifiedSenderMessage.EncryptedMessageOneofCase != EncryptedMessageOneofOneofCase.EncryptedMessage)
+                if (!unidentifiedSenderMessage.HasEphemeralPublic ||
+                    !unidentifiedSenderMessage.HasEncryptedStatic ||
+                    !unidentifiedSenderMessage.HasEncryptedMessage)
                 {
                     throw new InvalidMetadataMessageException("Missing fields");
                 }

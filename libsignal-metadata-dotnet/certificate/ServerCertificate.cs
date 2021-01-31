@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Google.Protobuf;
 using libsignal;
 using libsignal.ecc;
@@ -21,16 +18,15 @@ namespace libsignalmetadatadotnet.certificate
             try
             {
                 var wrapper = libsignalmetadata.protobuf.ServerCertificate.Parser.ParseFrom(serialized);
-                if (wrapper.CertificateOneofCase != libsignalmetadata.protobuf.ServerCertificate.CertificateOneofOneofCase.Certificate ||
-                    wrapper.SignatureOneofCase != libsignalmetadata.protobuf.ServerCertificate.SignatureOneofOneofCase.Signature)
+
+                if (!wrapper.HasCertificate || !wrapper.HasSignature)
                 {
                     throw new InvalidCertificateException("Missing fields");
                 }
 
                 var certificate = libsignalmetadata.protobuf.ServerCertificate.Types.Certificate.Parser.ParseFrom(wrapper.Certificate);
 
-                if (certificate.IdOneofCase !=  libsignalmetadata.protobuf.ServerCertificate.Types.Certificate.IdOneofOneofCase.Id ||
-                    certificate.KeyOneofCase != libsignalmetadata.protobuf.ServerCertificate.Types.Certificate.KeyOneofOneofCase.Key)
+                if (!certificate.HasId || !certificate.HasKey)
                 {
                     throw new InvalidCertificateException("Missing fields");
                 }

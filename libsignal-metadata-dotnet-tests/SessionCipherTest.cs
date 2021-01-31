@@ -63,7 +63,6 @@ namespace libsignalmetadatadotnettests
             }
         }
 
-        [TestMethod]
         private void RunInteraction(SessionRecord aliceSessionRecord, SessionRecord bobSessionRecord)
         {
             SignalProtocolStore aliceStore = new TestInMemorySignalProtocolStore();

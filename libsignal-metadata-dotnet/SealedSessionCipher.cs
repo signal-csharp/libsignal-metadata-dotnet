@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -13,8 +12,6 @@ using libsignal.util;
 using libsignalmetadata;
 using libsignalmetadatadotnet.certificate;
 using libsignalmetadatadotnet.protocol;
-using Org.BouncyCastle.Crypto.Engines;
-using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
 using TextSecure.libsignal;
@@ -24,12 +21,19 @@ namespace libsignalmetadatadotnet
     public class SealedSessionCipher
     {
         public SignalProtocolStore SignalProtocolStore { get; }
-        public SignalProtocolAddress LocalAddress { get; }
+        public string? LocalE164Address { get; }
+        public string? LocalUuidAddress { get; }
+        public int LocalDeviceId { get; }
 
-        public SealedSessionCipher(SignalProtocolStore store, SignalProtocolAddress localAddress)
+        public SealedSessionCipher(SignalProtocolStore signalProtocolStore,
+            Guid localUuid,
+            string? localE164Address,
+            int localDeviceId)
         {
-            SignalProtocolStore = store;
-            LocalAddress = localAddress;
+            SignalProtocolStore = signalProtocolStore;
+            LocalUuidAddress = localUuid != null ? localUuid.ToString() : null;
+            LocalE164Address = localE164Address;
+            LocalDeviceId = localDeviceId;
         }
 
         public byte[] Encrypt(SignalProtocolAddress destinationAddress, SenderCertificate senderCertificate, byte[] paddedPlaintext)
@@ -51,7 +55,7 @@ namespace libsignalmetadatadotnet
             return new UnidentifiedSenderMessage(ephemeral.getPublicKey(), staticKeyCiphertext, messageBytes).Serialized;
         }
 
-        public (SignalProtocolAddress, byte[]) Decrypt(CertificateValidator validator, byte[] ciphertext, long timestamp)
+        public DecryptionResult Decrypt(CertificateValidator validator, byte[] ciphertext, long timestamp)
         {
             UnidentifiedSenderMessageContent content;
 
@@ -76,8 +80,10 @@ namespace libsignalmetadatadotnet
                     throw new libsignal.InvalidKeyException("Sender's certificate key does not match key used in message");
                 }
 
-                if (content.SenderCertificate.Sender == LocalAddress.Name &&
-                    content.SenderCertificate.SenderDeviceId == LocalAddress.DeviceId)
+                bool isLocalE164 = LocalE164Address != null && LocalE164Address == content.SenderCertificate.SenderE164;
+                bool isLocalUuid = LocalUuidAddress != null && LocalUuidAddress == content.SenderCertificate.SenderUuid;
+
+                if ((isLocalE164 || isLocalUuid) && content.SenderCertificate.SenderDeviceId == LocalDeviceId)
                 {
                     throw new SelfSendException();
                 }
@@ -97,7 +103,9 @@ namespace libsignalmetadatadotnet
 
             try
             {
-                return (new SignalProtocolAddress(content.SenderCertificate.Sender, (uint)content.SenderCertificate.SenderDeviceId),
+                return new DecryptionResult(content.SenderCertificate.SenderUuid,
+                    content.SenderCertificate.SenderE164,
+                    content.SenderCertificate.SenderDeviceId,
                     Decrypt(content));
             }
             catch (InvalidMessageException e)
@@ -164,7 +172,7 @@ namespace libsignalmetadatadotnet
 
         private byte[] Decrypt(UnidentifiedSenderMessageContent message)
         {
-            SignalProtocolAddress sender = new SignalProtocolAddress(message.SenderCertificate.Sender, (uint)message.SenderCertificate.SenderDeviceId);
+            SignalProtocolAddress sender = GetPreferredAddress(SignalProtocolStore, message.SenderCertificate);
 
             switch ((uint)message.Type)
             {
@@ -209,6 +217,41 @@ namespace libsignalmetadatadotnet
             var cipher = CipherUtilities.GetCipher("AES/CTR/NoPadding");
             cipher.Init(false, new ParametersWithIV(new KeyParameter(cipherKey), new byte[16]));
             return cipher.DoFinal(ciphertextParts[0]);
+        }
+
+        private SignalProtocolAddress GetPreferredAddress(SignalProtocolStore store, SenderCertificate certificate)
+        {
+            SignalProtocolAddress? uuidAddress = certificate.SenderUuid != null ? new SignalProtocolAddress(certificate.SenderUuid, (uint)certificate.SenderDeviceId) : null;
+            SignalProtocolAddress? e164Address = certificate.SenderE164 != null ? new SignalProtocolAddress(certificate.SenderE164, (uint)certificate.SenderDeviceId) : null;
+
+            if (uuidAddress != null && store.ContainsSession(uuidAddress))
+            {
+                return uuidAddress;
+            }
+            else if (e164Address != null && store.ContainsSession(e164Address))
+            {
+                return e164Address;
+            }
+            else
+            {
+                return new SignalProtocolAddress(certificate.Sender, (uint)certificate.SenderDeviceId);
+            }
+        }
+    }
+
+    public class DecryptionResult
+    {
+        public string? SenderUuid { get; }
+        public string? SenderE164 { get; }
+        public int DeviceId { get; }
+        public byte[] PaddedMessage { get; }
+
+        internal DecryptionResult(string? senderUuid, string? senderE164, int deviceId, byte[] paddedMessage)
+        {
+            SenderUuid = senderUuid;
+            SenderE164 = senderE164;
+            DeviceId = deviceId;
+            PaddedMessage = paddedMessage;
         }
     }
 
