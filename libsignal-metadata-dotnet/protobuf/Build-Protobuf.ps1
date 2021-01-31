@@ -1,11 +1,12 @@
-# Verify protoc is available on path and version is 3.12.4
+# Verify protoc is available and version is 3.12.4
 
+$protocNugetPath = "$env:USERPROFILE/.nuget/packages/google.protobuf.tools/3.12.4/tools/windows_x64/protoc.exe"
 $output = ""
 try {
-    $output = protoc --version
+    $output = & $protocNugetPath --version
 }
 catch {
-    Write-Error "Could not find protoc on path!"
+    Write-Error "Could not find protoc. Did you restore NuGet packages (dotnet restore) or is your NuGet cache not in your home directory?"
     return
 }
 
@@ -17,6 +18,6 @@ if ($version -ne $expectedVersion) {
     return
 }
 
-protoc --csharp_out=. .\UnidentifiedDelivery.proto
+& $protocNugetPath --csharp_out=. .\UnidentifiedDelivery.proto
 
 Write-Host "Done!"
