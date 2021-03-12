@@ -26,7 +26,7 @@ namespace libsignalmetadatadotnet
         public int LocalDeviceId { get; }
 
         public SealedSessionCipher(SignalProtocolStore signalProtocolStore,
-            Guid localUuid,
+            Guid? localUuid,
             string? localE164Address,
             int localDeviceId)
         {
